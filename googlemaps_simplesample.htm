@@ -1,0 +1,261 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="initial-scale=1.0, user-scalable=no">
+    <meta charset="utf-8">
+    <title>Directions service</title>
+    <style>
+        html, body {
+            height: 100%;
+            margin: 0px;
+            padding: 0px;
+        }
+
+        .map-canvas {
+            height: 550px;
+            width: 600px;
+            margin: 0px;
+            padding: 0px;
+            /*float: left;*/
+            border: blue;
+            border-style: dotted;
+        }
+
+        .div-canvas {
+            height: 99%;
+            width: 600px;
+            margin: 0px;
+            padding: 0px;
+            float: left;
+        }
+
+        .to-right {
+            text-align: right;
+        }
+
+        #panel {
+            position: absolute;
+            top: 5px;
+            left: 50%;
+            margin-left: -180px;
+            z-index: 5;
+            background-color: #fff;
+            padding: 5px;
+            border: 1px solid #999;
+        }
+    </style>
+
+
+    <!--
+    https://developers.google.com/maps/documentation/javascript/examples/directions-simple?hl=pt-br
+    https://developers.google.com/maps/documentation/javascript/directions?hl=pt-br
+        http://atendesigngroup.com/blog/google-maps-javascript-api
+                Criando marcadores na rota
+    -->
+    <!--
+        https://developers.google.com/maps/documentation/directions/
+        Required parameters
+
+        origin — The address or textual latitude/longitude value from which you wish to calculate directions. If you pass an address as a string, the Directions service will geocode the string and convert it to a latitude/longitude coordinate to calculate directions. If you pass coordinates, ensure that no space exists between the latitude and longitude values.
+
+        destination — The address or textual latitude/longitude value from which you wish to calculate directions. If you pass an address as a string, the Directions service will geocode the string and convert it to a latitude/longitude coordinate to calculate directions. If you pass coordinates, ensure that no space exists between the latitude and longitude values
+
+    -->
+    <!--<script src="https://maps.googleapis.com/maps/api/js?v=3.exp&signed_in=true"></script>-->
+    <script src="http://maps.googleapis.com/maps/api/js?sensor=false&amp;libraries=places" type="text/javascript"></script>
+    <script type="text/javascript">
+
+        var placeStart;
+        var placeEnd;
+
+        function initialize2() {
+
+            //https://developers.google.com/places/supported_types?hl=pt-br
+            var options = {
+                types: ['(cities)'],
+                //types: ['political'],
+                //types: ['(regions)'],
+                //types: ['geocode'],
+                //,
+                componentRestrictions: { country: "br" }
+            };
+
+            //---------------------------------------------------------
+            // PLACE 1
+
+            var inputPlaceStart = document.getElementById('txtStart');
+            var autocomplete = new google.maps.places.Autocomplete(inputPlaceStart, options);
+
+            google.maps.event.addListener(autocomplete, 'place_changed', function () {
+                placeStart = autocomplete.getPlace();
+
+                //TODO LEANDRO | se quiser funcionar com ENTER ativar aqui!
+                //calcRouteByLatLog(placeStart, placeEnd);
+
+                if (!placeStart) {
+                    window.alert("Autocomplete's returned place contains no geometry");
+                    return;
+                } else {
+                    console.log(placeStart.geometry.location.A);
+                    console.log(placeStart.geometry.location.F);
+                }
+
+
+            });
+            // PLACE 1 END
+            //---------------------------------------------------------
+
+
+            //---------------------------------------------------------
+            // PLACE 2
+
+            var inputPlaceEnd = document.getElementById('txtEnd');
+            var autoCompleteEnd = new google.maps.places.Autocomplete(inputPlaceEnd, options);
+
+            google.maps.event.addListener(autoCompleteEnd, 'place_changed', function () {
+                placeEnd = autoCompleteEnd.getPlace();
+
+                //TODO LEANDRO | se quiser funcionar com ENTER ativar aqui!
+                //calcRouteByLatLog(placeStart, placeEnd);
+
+                if (!placeEnd) {
+                    window.alert("Autocomplete's returned place contains no geometry");
+                    return;
+                }
+            });
+            // PLACE 2 END
+            //---------------------------------------------------------
+
+
+        }
+        google.maps.event.addDomListener(window, 'load', initialize2);
+    </script>
+
+
+    <script>
+        var directionsDisplayLeft;
+        var directionsDisplayRight;
+
+        var mapLeft;
+        var mapRight;
+
+        var totalLeft = document.getElementById("total");
+        var totalRight = document.getElementById("total2");
+
+        var directionsService = new google.maps.DirectionsService();
+
+        function initialize() {
+            directionsDisplayLeft = new google.maps.DirectionsRenderer();
+            directionsDisplayRight = new google.maps.DirectionsRenderer();
+
+            var chicago = new google.maps.LatLng(41.850033, -87.6500523);
+            var b_roxo = new google.maps.LatLng(-22.7645391, -43.39962639999999);
+            var rio_de_janeiro = new google.maps.LatLng(-22.9068467, -43.17289649999998);
+
+            var mapOptions = {
+                zoom: 7,
+                center: b_roxo
+            };
+            mapLeft = new google.maps.Map(document.getElementById('map-canvas'), mapOptions);
+            directionsDisplayLeft.setMap(mapLeft);
+
+            mapRight = new google.maps.Map(document.getElementById('map-canvas2'), mapOptions);
+            directionsDisplayRight.setMap(mapRight);
+
+            google.maps.event.addListener(directionsDisplayLeft, 'directions_changed', function () {
+                computeTotalDistance(directionsDisplayLeft.getDirections(), document.getElementById("total"));
+            });
+
+            google.maps.event.addListener(directionsDisplayRight, 'directions_changed', function () {
+                computeTotalDistance(directionsDisplayRight.getDirections(), document.getElementById("total2"));
+            });
+
+        }
+
+        function calcRouteByLatLog(placeStart, placeEnd) {
+
+            if (!placeStart || !placeEnd)
+                return;
+
+            var request = {
+                origin: new google.maps.LatLng(placeStart.geometry.location.A, placeStart.geometry.location.F),
+                destination: new google.maps.LatLng(placeEnd.geometry.location.A, placeEnd.geometry.location.F),
+                travelMode: google.maps.TravelMode.DRIVING
+            };
+            directionsService.route(request, function (response, status) {
+                if (status == google.maps.DirectionsStatus.OK) {
+                    directionsDisplayLeft.setDirections(response);
+                } else {// if (status == google.maps.DirectionsStatus.OK) {
+                    //error from google
+                    alert('Erro ao obter a direção!');
+                }
+            });
+        }
+
+        function calcRouteByLocation() {
+
+            var start = document.getElementById('txtStart').value;
+            var end = document.getElementById('txtEnd').value;
+
+            if (!start || !end)
+                return;
+
+            var request = {
+                origin: start,
+                destination: end,
+                travelMode: google.maps.TravelMode.DRIVING
+            };
+            directionsService.route(request, function (response, status) {
+                if (status == google.maps.DirectionsStatus.OK) {
+                    directionsDisplayRight.setDirections(response);
+                } else {// if (status == google.maps.DirectionsStatus.OK) {
+                    //error from google
+                    alert('Erro ao obter a direção!');
+                }
+            });
+        }
+
+        function computeTotalDistance(result, element) {
+            var total = 0;
+            var myroute = result.routes[0];
+            for (var i = 0; i < myroute.legs.length; i++) {
+                total += myroute.legs[i].distance.value;
+            }
+            total = total / 1000.0;
+            //document.getElementById('total').innerHTML = total + ' km';
+            element.innerHTML = total + ' km';
+        }
+
+        google.maps.event.addDomListener(window, 'load', initialize);
+
+    </script>
+</head>
+<body>
+
+    <div id="panel">
+        <div>
+            <b>Start: </b>
+            <input id="txtStart" type="text" size="50" placeholder="Enter a location" autocomplete="on">
+        </div>
+        <div>
+            <b>End: </b>
+            <input id="txtEnd" type="text" size="50" placeholder="Enter a location" autocomplete="on">
+        </div>
+        <div>
+            <button id="btnCalcular" onclick="calcRouteByLatLog(placeStart, placeEnd);">Calcular Por Lat/Long</button>
+            <button id="btnCalcularPorLocalizacao" onclick="calcRouteByLocation(placeStart, placeEnd);">Calcular Por Texto</button>
+        </div>
+    </div>
+    <div style="display: block;">
+        <div id="directionsPanel" class="div-canvas">
+            <p>Total Distance: <span id="total"></span></p>
+            <div id="map-canvas" class="map-canvas"></div>
+        </div>
+        <div id="directionsPanel2" class="div-canvas to-right">
+            <p>Total Distance: <span id="total2"></span></p>
+            <div id="map-canvas2" class="map-canvas"></div>
+        </div>
+    </div>
+
+</body>
+</html>
